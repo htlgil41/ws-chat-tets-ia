@@ -1,0 +1,101 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Message from '../components/Message.astro';
+import Layout from '../layouts/Layout.astro';
+
+---
+
+<Layout title="Aaron & Stalin IA - Chat">
+  <main class="max-w-5xl mx-auto h-screen flex flex-col bg-white shadow-2xl">
+    
+    <Header />
+    
+    <Message />
+
+    <footer class="bg-[#f0f2f5] p-3 flex items-center gap-2">
+      <input 
+        type="text" 
+        id="chat-input"
+        placeholder="Escribe un mensaje aquí" 
+        class="flex-1 py-2 px-4 rounded-lg border-none focus:outline-none text-sm shadow-sm"
+      />
+      <button 
+        id="send-btn"
+        class="bg-[#00a884] hover:bg-[#008f6f] text-white p-2 rounded-full transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+        </svg>
+      </button>
+    </footer>
+
+  </main>
+</Layout>
+
+<script>
+  const input = document.getElementById('chat-input') as HTMLInputElement;
+  const btn = document.getElementById('send-btn');
+  const container = document.getElementById('chat-container');
+  const typingIndicator = document.getElementById('typing-indicator');
+
+  async function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    appendMessage(message, 'user');
+    input.value = '';
+    showTyping();
+
+    try {
+      const response = await fetch(`https://wsiabot.htlgil41.workers.dev/chat/${encodeURIComponent(message)}`);
+      const data = await response.text();
+      hideTyping();
+
+      appendMessage(data, 'bot');
+    } catch (error) {
+      hideTyping();
+      appendMessage("Error al conectar con la IA.", 'bot');
+    }
+  }
+  function showTyping() {
+    if (typingIndicator) {
+      typingIndicator.classList.remove('hidden');
+      scrollToBottom();
+    }
+  }
+
+  function hideTyping() {
+    if (typingIndicator) {
+      typingIndicator.classList.add('hidden');
+    }
+  }
+
+  function scrollToBottom() {
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
+  function appendMessage(text: string, sender: 'user' | 'bot') {
+    if (!container || !typingIndicator) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = sender === 'user' ? 'flex justify-end' : 'flex justify-start';
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' 
+      ? 'bg-[#d9fdd3] p-3 rounded-lg rounded-tr-none shadow-sm max-w-[80%] text-sm'
+      : 'bg-white p-3 rounded-lg rounded-tl-none shadow-sm max-w-[80%] text-sm';
+    
+    bubble.textContent = text;
+    wrapper.appendChild(bubble);
+    container.insertBefore(wrapper, typingIndicator);
+    
+    scrollToBottom();
+  }
+
+  btn?.addEventListener('click', sendMessage);
+  input?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+</script>
